@@ -1,70 +1,58 @@
 # ML-Assignment-2
 Gram-Schmidt process-Assignment submitted for online Machine learning Math course offered by Imperial College London 
+
 import numpy as np
+import numpy.linalg as la
 
-# function that goes through the matrix replacing each row in order turning it into echelon form.
+verySmallNumber = 1e-14 # That's 1×10⁻¹⁴ = 0.00000000000001
 
-def isSingular(A) :
-    B = np.array(A, dtype=np.float_) # Make B as a copy of A, since we're going to alter it's values.
-    try:
-        fixRowZero(B)
-        fixRowOne(B)
-        fixRowTwo(B)
-        fixRowThree(B)
-    except MatrixIsSingular:
-        return True
-    return False
+# performs the Gram-Schmidt procedure for 4 basis vectors.
 
-# defines the error flag for when things go wrong if the matrix is singular.
-class MatrixIsSingular(Exception): pass
+def gsBasis4(A) :
+    B = np.array(A, dtype=np.float_) 
+    # normalising.
+    B[:, 0] = B[:, 0] / la.norm(B[:, 0])
+    # subtracting overlap.
+    B[:, 1] = B[:, 1] - B[:, 1] @ B[:, 0] * B[:, 0]
+    # when B[:, 1] is linearly independant of B[:, 0], normalise.
+    if la.norm(B[:, 1]) > verySmallNumber :
+        B[:, 1] = B[:, 1] / la.norm(B[:, 1])
+    else :
+        B[:, 1] = np.zeros_like(B[:, 1])
+    # column 2.
+    B[:,2]=B[:,2]-B[:,2] @ B[:,0] * B[:,0]
+    B[:,2]=B[:,2]-B[:,2] @ B[:,1] * B[:,1]
+    # normalising.
+    if la.norm(B[:,2])>verySmallNumber:
+        B[:,2]=B[:,2]/la.norm(B[:,2])
+    else:
+        B[:,2]=np.zeros_like(B[:,2])
+    # column 3.
+    B[:,3]=B[:,3]-B[:,3] @ B[:,0] * B[:,0]
+    B[:,3]=B[:,3]-B[:,3] @ B[:,1] * B[:,1]
+    B[:,3]=B[:,3]-B[:,3] @ B[:,2] * B[:,2]
+    # normalising if possible.
+    if la.norm(B[:,3])>verySmallNumber:
+        B[:,3]=B[:,3]/la.norm(B[:,3])
+    else:
+        B[:,3]=np.zeros_like(B[:,3])
+    return B
 
-# For Row Zero, first element needs to be equal to 1.
+# generalising the procedure.
 
-def fixRowZero(A) :
-    if A[0,0] == 0 :
-        A[0] = A[0] + A[1]
-    if A[0,0] == 0 :
-        A[0] = A[0] + A[2]
-    if A[0,0] == 0 :
-        A[0] = A[0] + A[3]
-    if A[0,0] == 0 :
-        raise MatrixIsSingular()
-    A[0] = A[0] / A[0,0]
-    return A
+def gsBasis(A) :
+    B = np.array(A, dtype=np.float_) 
+    # Looping over all vectors
+    for i in range(B.shape[1]) :
+        # Inside looping over all previous vectors, j, to subtract.
+        for j in range(i) :
+            B[:, i] = B[:,i]-B[:,i] @ B[:,j] * B[:,j]
+        # normalising
+        if la.norm(B[:,i])>verySmallNumber:
+            B[:,i]=B[:,i]/la.norm(B[:,i])
+        else:
+            B[:,i]=np.zeros_like(B[:,i])
+    return B
 
-# then sub-diagonal elements to zero, i.e. A[1,0].
-
-def fixRowOne(A) :
-    A[1] = A[1] - A[1,0] * A[0]
-    if A[1,1] == 0 :
-        A[1] = A[1] + A[2]
-        A[1] = A[1] - A[1,0] * A[0]
-    if A[1,1] == 0 :
-        A[1] = A[1] + A[3]
-        A[1] = A[1] - A[1,0] * A[0]
-    if A[1,1] == 0 :
-        raise MatrixIsSingular()
-    A[1] = A[1] / A[1,1]
-    return A
-# sub-diagonal elements of row two to zero if not zero
-def fixRowTwo(A) :
-    A[2]=A[2]-A[2,0]*A[0]
-    A[2]=A[2]-A[2,1]*A[1]
-    if A[2,2] == 0 :
-        A[2]=A[2]+A[3]
-        A[2]=A[2]-A[2,0]*A[0]
-        A[2]=A[2]-A[2,1]*A[1]     
-    if A[2,2] == 0 :
-        raise MatrixIsSingular()
-    A[2]=A[2]/A[2,2]
-    return A
-
-# sub-diagonal elements of row three to zero if not zero
-def fixRowThree(A) :
-    A[3]=A[3]-A[3,0]*A[0]
-    A[3]=A[3]-A[3,1]*A[1]
-    A[3]=A[3]-A[3,2]*A[2]
-    if A[3,3]==0:
-        raise MatrixIsSingular()
-    A[3]=A[3]/A[3,3]
-    return A
+def dimensions(A) :
+    return np.sum(la.norm(gsBasis(A), axis=0)) 
